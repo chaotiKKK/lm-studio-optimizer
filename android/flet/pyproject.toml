@@ -1,0 +1,16 @@
+[project]
+name = "lm-optimizer-mobile"
+version = "1.0.0"
+description = "LM Studio Optimizer als Android-App (Flet)"
+requires-python = ">=3.12"
+dependencies = ["flet"]
+
+[tool.flet]
+product = "LM Studio Optimizer"
+org = "com.chaotikk"
+bundle-id = "com.chaotikk.lmoptimizer"
+build-number = 1
+build-version = "1.0.0"
+
+[tool.flet.android]
+# Bei Bedarf: split_per_abi = true  (eine APK pro Architektur, kleiner)

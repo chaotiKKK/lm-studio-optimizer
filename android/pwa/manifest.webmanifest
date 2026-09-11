@@ -1,0 +1,16 @@
+{
+  "name": "LM Studio Optimizer",
+  "short_name": "LMOpt",
+  "description": "Aufgaben-Profile, Ladewerte und Modell-Suche fuer LM Studio.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080816",
+  "theme_color": "#080816",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

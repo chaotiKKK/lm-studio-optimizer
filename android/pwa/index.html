@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080816">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Aufgaben-Profile, Ladewerte und Modell-Suche fuer LM Studio.">
+<title>LM Studio Optimizer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#080816; --panel:#121222; --panel2:#1a1a30; --line:#26263d;
+  --signal:#00d2ff; --warp:#7b2ff7; --amber:#ff9500; --go:#00ff88;
+  --alert:#ff2d95; --text:#e8e8f0; --muted:#a9a9c6; --desc:#c6c6da;
+  --fs:100%;
+}
+*{box-sizing:border-box}
+html{font-size:var(--fs)}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:"Segoe UI",system-ui,sans-serif; font-size:.95rem;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.topbar{height:.25rem;background:linear-gradient(90deg,var(--signal),var(--warp))}
+header{padding:.7rem 1rem .2rem}
+header h1{margin:0;font-size:1.25rem;color:var(--signal)}
+header p{margin:.15rem 0 0;color:var(--muted);font-size:.8rem}
+.toolbar{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;
+  padding:.5rem 1rem}
+.toolbar .spacer{flex:1}
+button{
+  font:inherit;font-weight:700;color:var(--text);background:var(--panel2);
+  border:0;border-radius:.45rem;padding:.6rem .9rem;min-height:44px;
+  cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{
+  outline:3px solid var(--signal);outline-offset:2px}
+button.primary{background:var(--signal);color:#080816}
+button.warp{background:var(--warp);color:#fff}
+button.amber{background:var(--amber);color:#080816}
+button.go{background:var(--go);color:#080816}
+button.ghost{background:var(--panel2);color:var(--signal)}
+button.danger{background:#3a1a1a;color:#ff6b6b}
+button:disabled{opacity:.5;cursor:default}
+#pills{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;
+  padding:.4rem 1rem}
+#pills button{color:#c0c0c0;min-height:48px}
+#pills button.active{color:#080816}
+main{padding:.4rem 1rem 5rem;max-width:1100px;margin:0 auto}
+.card{background:var(--panel);border-radius:.7rem;padding:1rem;margin:.6rem 0}
+.card h2{margin:0 0 .2rem;font-size:1.1rem;color:var(--signal)}
+.card .sub{color:var(--desc);font-size:.85rem;margin:0 0 .6rem}
+.edited{display:inline-block;background:var(--amber);color:#080816;
+  font-size:.7rem;font-weight:700;border-radius:.4rem;padding:.15rem .5rem;
+  margin-left:.5rem}
+.sec{background:var(--panel2);border-radius:.5rem;padding:.5rem .7rem;
+  margin:.7rem 0 .2rem;font-weight:700;color:var(--signal);width:100%;
+  text-align:left}
+.row{display:flex;align-items:center;gap:.5rem;padding:.35rem 0;
+  border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row label{flex:1;color:var(--muted)}
+.row .val{font-family:Consolas,monospace;font-weight:700}
+.row select,.row input{font:inherit;background:var(--panel);color:var(--text);
+  border:1px solid var(--line);border-radius:.4rem;padding:.5rem;min-height:44px;
+  max-width:9rem}
+.meter{height:.65rem;background:var(--panel2);border-radius:.3rem;
+  display:flex;gap:2px;overflow:hidden;margin:.3rem 0 .6rem}
+.meter i{flex:1;background:var(--line);border-radius:1px}
+.meter i.on{background:var(--signal)}
+.meter.warn i.on{background:#ffc107}
+.meter.crit i.on{background:#ff4444}
+.meter.go i.on{background:var(--go)}
+.warnbox{background:#3a1a1a;border-radius:.5rem;padding:.7rem;margin-top:.6rem}
+.warnbox b{color:#ff6b6b}
+.okbox{background:#0f2a1a;border-radius:.5rem;padding:.7rem;margin-top:.5rem}
+.okbox b{color:var(--go)}
+.alts{margin:.3rem 0 0;padding:0;list-style:none}
+.alts li{padding:.45rem 0;border-bottom:1px solid var(--line);cursor:pointer}
+.alts li:last-child{border-bottom:0}
+table.cmp{width:100%;border-collapse:collapse;font-size:.8rem}
+table.cmp th{color:var(--muted);text-align:left;padding:.4rem .3rem;
+  border-bottom:2px solid var(--line);font-size:.72rem}
+table.cmp td{padding:.55rem .3rem;border-bottom:1px solid var(--line)}
+table.cmp tr.cur td{background:var(--panel2)}
+table.cmp td.num,table.cmp th.num{text-align:right;font-family:Consolas,monospace}
+table.cmp tbody tr{cursor:pointer}
+.vbar{height:5px;background:var(--line);border-radius:3px;margin-top:.25rem}
+.vbar i{display:block;height:100%;border-radius:3px;background:var(--signal)}
+footer{position:fixed;left:0;right:0;bottom:0;background:var(--panel);
+  display:flex;gap:.4rem;padding:.5rem 1rem calc(.5rem + env(safe-area-inset-bottom));
+  overflow-x:auto}
+footer button{white-space:nowrap}
+#status{position:fixed;left:0;right:0;bottom:0;pointer-events:none}
+#toast{margin:0 auto 4.2rem;width:fit-content;max-width:90%;
+  background:var(--panel2);border:1px solid var(--signal);color:var(--text);
+  border-radius:.5rem;padding:.5rem .9rem;display:none}
+#searchres{font-family:Consolas,monospace;font-size:.78rem;white-space:pre-wrap;
+  background:#0f0f1e;border-radius:.5rem;padding:.7rem;margin-top:.5rem}
+.lvlrow{display:flex;gap:.4rem;margin:.4rem 0}
+.lvlrow button{flex:1}
+.hint{color:var(--muted);font-size:.78rem}
+#selftest{display:none;background:#0f2a1a;border:1px solid var(--go);
+  border-radius:.5rem;padding:.6rem;margin:.5rem 1rem}
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:.8rem}
+@media (max-width:820px){
+  #pills{grid-template-columns:repeat(2,1fr)}
+  .cols{grid-template-columns:1fr}
+  .row select,.row input{max-width:7.5rem}
+  table.cmp{font-size:.72rem}
+}
+</style>
+</head>
+<body>
+<div class="topbar"></div>
+<div id="selftest" role="status"></div>
+<header>
+  <h1>LM Studio Optimizer</h1>
+  <p>Profile &middot; Werte &middot; Modell-Suche &middot; offlinef&auml;hig</p>
+</header>
+<div class="toolbar" role="toolbar" aria-label="Ansicht und Schriftgroesse">
+  <button id="zout" aria-label="Schrift verkleinern">&minus;</button>
+  <button id="zlab" aria-label="Schriftgroesse zuruecksetzen">100%</button>
+  <button id="zin" aria-label="Schrift vergroessern">+</button>
+  <button id="vdash" class="ghost">&#9776; Dashboard</button>
+  <span class="spacer"></span>
+  <button id="vsearch" class="amber">HF-Suche</button>
+</div>
+<nav id="pills" aria-label="Profile"></nav>
+<main id="main"></main>
+<footer>
+  <button id="bcopy" class="primary">Werte kopieren</button>
+  <button id="bjson" class="warp">JSON-Preset</button>
+  <button id="bsearch" class="amber">Online-Suche</button>
+  <button id="breset" class="danger">Reset</button>
+</footer>
+<div id="status"><div id="toast" role="status"></div></div>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const CTX=[2048,4096,8192,16384,32768,65536,131072];
+const BATCH=[128,256,512,1024,2048];
+const KV=["Q8_0","Q4_0","Q5_K_M","F16"];
+const state={tasks:null,cur:"coding",alvl:"normal",view:"profile",
+  zoom:+(localStorage.getItem("lmo-zoom")||100),
+  ov:JSON.parse(localStorage.getItem("lmo-overrides")||"{}"),
+  collapsed:new Set(),search:""};
+const saveOv=()=>localStorage.setItem("lmo-overrides",JSON.stringify(state.ov));
+function toast(m){const t=$("#toast");t.textContent=m;t.style.display="block";
+  clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",3500);}
+async function copyText(t){
+  try{await navigator.clipboard.writeText(t);toast("In Zwischenablage kopiert.");}
+  catch(e){const ta=document.createElement("textarea");ta.value=t;
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");toast("In Zwischenablage kopiert.");}
+    catch(_){toast("Kopieren blockiert.");}ta.remove();}
+}
+function ovKey(){return state.cur==="audio"?"audio:"+state.alvl:state.cur;}
+function baseAct(){
+  const p=state.tasks[state.cur];
+  if(state.cur==="audio"){
+    const i=p.levels[state.alvl];
+    return Object.assign({},i,{batch:256,phys_batch:256,threads:8,max_conc:2,
+      unified_kv:true,ctx_cp:32,keep_mem:false,offload_kv:true,spec:"OFF",
+      max_draft:0,min_draft:0,draft_p:0,rope_base:0,rope_scale:0,flash:true,
+      mmap:false,k_quant:i.kv,v_quant:i.kv,kv:i.kv,tok:i.speed,ram:2,
+      stab:p.stab,model:i.model,search:i.search,desc:i.desc,
+      name:"Audio-"+state.alvl});
+  }
+  return Object.assign({},p);
+}
+function act(){const s=baseAct(),o=state.ov[ovKey()]||{};
+  for(const k in o)if(k in s)s[k]=o[k];return s;}
+function edited(){return !!(state.ov[ovKey()]&&Object.keys(state.ov[ovKey()]).length);}
+function estVram(b,e){
+  try{let v=+b.vram;const k=String(e.kv||e.k_quant||"Q8_0");
+    const per8k=k.includes("Q4")?0.28:(k.includes("Q5")?0.42:0.55);
+    v+=((+e.ctx-+b.ctx)/8192)*per8k;v+=(+e.layers-+b.layers)*0.06;
+    if(!e.offload_kv)v-=0.4;return Math.max(.5,Math.round(v*10)/10);}
+  catch(e2){return +b.vram||7;}
+}
+function setOv(k,v){
+  const key=ovKey(),b=baseAct(),d=state.ov[key]||(state.ov[key]={});
+  if(v===b[k]){delete d[k];if(!Object.keys(d).length)delete state.ov[key];}
+  else d[k]=v;
+  saveOv();render();
+}
+const FIELDS={
+ kern:[["Context Length","ctx","ctx"],["GPU Offload","layers","layers"],
+  ["KV Cache Quantization","kv","kv"],["Flash Attention","flash","bool"]],
+ perf:[["Physical Batch Size","phys_batch","batch"],
+  ["Evaluation Batch Size","batch","batch"],
+  ["CPU Thread Pool Size","threads","threads"],
+  ["Max Concurrent","max_conc","conc"]],
+ mem:[["Unified KV Cache","unified_kv","bool"],
+  ["Context Checkpoints","ctx_cp","ctxcp"],["Try mmap()","mmap","bool"],
+  ["Keep Model in Memory","keep_mem","bool"],
+  ["Offload KV to GPU","offload_kv","bool"]],
+ spec:[["Speculative Decoding","spec","spec"],
+  ["Max Draft Tokens","max_draft","draft"],
+  ["Min Draft Tokens","min_draft","draft"],
+  ["Draft Probability","draft_p","prob"]],
+ adv:[["RoPE Frequency Base","rope_base","rope"],
+  ["RoPE Frequency Scale","rope_scale","rope"],
+  ["K-Cache Quantization","k_quant","kv"],
+  ["V-Cache Quantization","v_quant","kv"]]};
+function editor(key,kind,val){
+  const mk=(t)=>{const e=document.createElement(t);return e;};
+  if(kind==="bool"){const s=mk("select");
+    ["An","Aus"].forEach(o=>{const op=document.createElement("option");
+      op.value=o;op.textContent=o;s.appendChild(op);});
+    s.value=val?"An":"Aus";
+    s.setAttribute("aria-label",key);
+    s.onchange=()=>setOv(key,s.value==="An");return s;}
+  if(kind==="ctx"||kind==="batch"){const s=mk("select");
+    (kind==="ctx"?CTX:BATCH).forEach(o=>{const op=document.createElement("option");
+      op.value=o;op.textContent=o;s.appendChild(op);});
+    s.value=String(val);s.setAttribute("aria-label",key);
+    s.onchange=()=>setOv(key,+s.value);return s;}
+  if(kind==="kv"){const s=mk("select");
+    KV.forEach(o=>{const op=document.createElement("option");
+      op.value=o;op.textContent=o;s.appendChild(op);});
+    s.value=String(val);s.setAttribute("aria-label",key);
+    s.onchange=()=>setOv(key,s.value);return s;}
+  if(kind==="spec"){const s=mk("select");
+    ["OFF","MTP"].forEach(o=>{const op=document.createElement("option");
+      op.value=o;op.textContent=o;s.appendChild(op);});
+    s.value=String(val);s.setAttribute("aria-label",key);
+    s.onchange=()=>setOv(key,s.value);return s;}
+  if(["threads","conc","ctxcp","draft","rope"].includes(kind)){
+    const lim={threads:[1,32],conc:[1,8],ctxcp:[8,128],draft:[0,32],rope:[0,100000]}[kind];
+    const i=mk("input");i.type="number";i.min=lim[0];i.max=lim[1];i.value=val;
+    i.setAttribute("aria-label",key);
+    i.onchange=()=>{const v=parseInt(i.value,10);
+      if(!isNaN(v))setOv(key,Math.min(lim[1],Math.max(lim[0],v)));};return i;}
+  if(kind==="prob"){const i=mk("input");i.type="number";i.min="0";i.max="1";
+    i.step="0.1";i.value=val;i.setAttribute("aria-label",key);
+    i.onchange=()=>{const v=parseFloat(i.value);
+      if(!isNaN(v))setOv(key,Math.round(Math.min(1,Math.max(0,v))*10)/10);};return i;}
+  const s=mk("span");s.className="val";s.textContent=val;return s;
+}
+function disp(key,val,kind){
+  if(kind==="bool")return val?"An":"Aus";
+  if(key==="ctx")return(+val).toLocaleString("de-DE");
+  if(key==="layers")return val+" Layer";
+  if((key==="rope_base"||key==="rope_scale")&&+val===0)return"Auto";
+  return String(val);
+}
+function section(parent,title,rows){
+  const open=!state.collapsed.has(title);
+  const b=document.createElement("button");b.className="sec";
+  b.textContent=(open?"\u25bc  ":"\u25b6  ")+title;
+  b.setAttribute("aria-expanded",open);
+  const body=document.createElement("div");
+  if(!open)body.style.display="none";
+  b.onclick=()=>{if(state.collapsed.has(title))state.collapsed.delete(title);
+    else state.collapsed.add(title);render();};
+  parent.appendChild(b);parent.appendChild(body);
+  rows.forEach(([label,key,kind])=>{
+    const e=act(),v=e[key];
+    const r=document.createElement("div");r.className="row";
+    const l=document.createElement("label");l.textContent=label;
+    r.appendChild(l);r.appendChild(editor(key,kind,v));
+    const c=document.createElement("button");c.className="ghost";
+    c.textContent="Copy";c.style.minHeight="44px";
+    c.setAttribute("aria-label",label+" kopieren");
+    c.onclick=()=>copyText(disp(key,act()[key],kind));
+    r.appendChild(c);body.appendChild(r);
+  });
+}
+function meter(parent,label,text,frac,cls){
+  const l=document.createElement("div");l.style.color="var(--muted)";
+  l.style.fontSize=".8rem";l.textContent=label+" \u00b7 "+text;
+  parent.appendChild(l);
+  const m=document.createElement("div");m.className="meter "+(cls||"");
+  m.setAttribute("role","img");
+  m.setAttribute("aria-label",label+": "+text);
+  for(let i=0;i<20;i++){const s=document.createElement("i");
+    if(i<Math.round(frac*20))s.className="on";m.appendChild(s);}
+  parent.appendChild(m);
+}
+function renderPills(){
+  const n=$("#pills");n.innerHTML="";
+  Object.keys(state.tasks).forEach(k=>{
+    const p=state.tasks[k],b=document.createElement("button");
+    b.textContent=p.icon+" "+p.name;
+    if(state.view==="profile"&&k===state.cur){
+      b.classList.add("active");b.style.background=p.color;}
+    b.onclick=()=>{state.cur=k;state.view="profile";render();
+      window.scrollTo(0,0);};
+    n.appendChild(b);
+  });
+  $("#vdash").className=state.view==="dashboard"?"primary":"ghost";
+}
+function profileView(m){
+  const p=state.tasks[state.cur],e=act(),b=baseAct();
+  const cols=document.createElement("div");cols.className="cols";
+  const L=document.createElement("div"),R=document.createElement("div");
+  cols.appendChild(L);cols.appendChild(R);m.appendChild(cols);
+  const h=document.createElement("div");h.className="card";
+  h.innerHTML="<h2>"+p.icon+"  "+e.name+
+    (edited()?'<span class="edited">\u25cf bearbeitet</span>':"")+"</h2>";
+  const d=document.createElement("p");d.className="sub";d.textContent=p.desc;
+  h.appendChild(d);L.appendChild(h);
+  if(state.cur==="audio"){
+    const lv=document.createElement("div");lv.className="lvlrow";
+    ["min","normal","max"].forEach(x=>{
+      const btn=document.createElement("button");btn.textContent=x.toUpperCase();
+      if(x===state.alvl){btn.className="primary";}btn.onclick=()=>{state.alvl=x;render();};
+      lv.appendChild(btn);});
+    L.appendChild(lv);
+  }
+  section(L,"KERN-EINSTELLUNGEN",FIELDS.kern);
+  section(L,"PERFORMANCE",FIELDS.perf);
+  section(L,"SPEICHER-MANAGEMENT",FIELDS.mem);
+  section(L,"SPECULATIVE DECODING",FIELDS.spec);
+  section(L,"ERWEITERT",FIELDS.adv);
+  const rc=document.createElement("div");rc.className="card";
+  rc.innerHTML="<h2>Leistung und Modelle</h2>";
+  const est=estVram(b,e);
+  meter(rc,"VRAM (8 GB)",est.toFixed(1)+" GB / 8.0 GB",est/8,
+    est>=7.9?"crit":(est>=7.4?"warn":""));
+  let ram=+b.ram||3;
+  try{ram=Math.max(.5,Math.min(28,+b.ram*(+e.ctx/Math.max(1,+b.ctx))));}catch(_){}
+  ram=Math.round(ram*10)/10;
+  meter(rc,"RAM (32 GB)",ram.toFixed(1)+" GB / 32.0 GB",ram/32,"go");
+  [["Tempo",e.tok||"?"],["Stabilit\u00e4t",e.stab||"?"],
+   ["Kontext",(+e.ctx).toLocaleString("de-DE")]].forEach(([a,vv])=>{
+    const r=document.createElement("div");r.className="row";
+    r.innerHTML="<label>"+a+"</label>";
+    const s=document.createElement("span");s.className="val";s.textContent=vv;
+    r.appendChild(s);rc.appendChild(r);});
+  const mh=document.createElement("p");
+  mh.innerHTML="<b style='color:var(--signal)'>Empfohlenes Modell:</b><br>"+e.model;
+  rc.appendChild(mh);
+  const sh=document.createElement("p");sh.className="hint";
+  sh.textContent="Suche: "+e.search;rc.appendChild(sh);
+  const br=document.createElement("div");br.className="lvlrow";
+  const c1=document.createElement("button");c1.className="ghost";
+  c1.textContent="Modell kopieren";c1.onclick=()=>copyText(e.model);
+  const c2=document.createElement("button");c2.className="ghost";
+  c2.textContent="HF \u00f6ffnen";
+  c2.onclick=()=>window.open("https://huggingface.co/search?fullText=1&search="+
+    encodeURIComponent(e.search),"_blank");
+  br.appendChild(c1);br.appendChild(c2);rc.appendChild(br);
+  const ah=document.createElement("p");
+  ah.innerHTML="<b style='color:var(--amber)'>Alternativen:</b>";
+  rc.appendChild(ah);
+  const ul=document.createElement("ul");ul.className="alts";
+  (state.tasks[state.cur].alts||[]).forEach(a=>{
+    const li=document.createElement("li");li.textContent="\u2022  "+a;
+    li.tabIndex=0;li.setAttribute("role","button");
+    const go=()=>copyText(a);li.onclick=go;
+    li.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();go();}};
+    ul.appendChild(li);});
+  rc.appendChild(ul);
+  if(p.warn){const w=document.createElement("div");w.className="warnbox";
+    w.innerHTML="<b>WARNUNG</b><br>"+p.warn;rc.appendChild(w);}
+  if(p.ok){const w=document.createElement("div");w.className="okbox";
+    w.innerHTML="<b>EMPFEHLUNG</b><br>"+p.ok;rc.appendChild(w);}
+  R.appendChild(rc);
+}
+function effRow(key,alvl){
+  const keep={cur:state.cur,alvl:state.alvl};
+  state.cur=key;if(key==="audio")state.alvl=alvl;
+  const b=baseAct(),e=act();
+  const row={key:key+(key==="audio"?":"+alvl:""),tab:key,
+    label:key==="audio"?"Audio "+alvl.toUpperCase():state.tasks[key].name,
+    icon:state.tasks[key].icon,color:state.tasks[key].color,
+    vram:estVram(b,e),ctx:+e.ctx,layers:+e.layers,tok:e.tok||e.speed||"?",
+    stab:e.stab||"?",edited:!!(state.ov[ovKey()]&&
+      Object.keys(state.ov[ovKey()]).length),model:e.model};
+  try{row.ram=Math.round(Math.max(.5,Math.min(28,
+    (+b.ram||2)*(+e.ctx/Math.max(1,+b.ctx||1))))*10)/10;}catch(_){row.ram=2;}
+  state.cur=keep.cur;state.alvl=keep.alvl;return row;
+}
+function dashRows(){
+  const r=[];Object.keys(state.tasks).forEach(k=>{
+    if(k==="audio")["min","normal","max"].forEach(l=>r.push(effRow(k,l)));
+    else r.push(effRow(k));});
+  return r;
+}
+function dashView(m){
+  const rows=dashRows();
+  const c=document.createElement("div");c.className="card";
+  c.innerHTML="<h2>\u2630 Info-Dashboard</h2><p class='sub'>"+
+    rows.length+" Profile &middot; "+
+    rows.filter(r=>r.edited).length+" bearbeitet &middot; "+
+    "Tippen oder Enter \u00f6ffnet das Profil.</p>";
+  m.appendChild(c);
+  const t=document.createElement("div");t.className="card";
+  t.innerHTML="<h2>Alle Profile im Vergleich</h2>";
+  const tab=document.createElement("table");tab.className="cmp";
+  tab.innerHTML="<thead><tr><th>Profil</th><th class='num'>VRAM</th>"+
+    "<th class='num'>RAM</th><th class='num'>Ctx</th><th>Tempo</th></tr></thead>";
+  const tb=document.createElement("tbody");
+  rows.forEach(r=>{
+    const tr=document.createElement("tr");tr.tabIndex=0;
+    if(r.tab===state.cur)tr.className="cur";
+    const sym=r.vram>=7.9?"\u2715":(r.vram>=7.4?"!":"\u2713");
+    const scol=r.vram>=7.9?"#ff6b6b":(r.vram>=7.4?"#ffc107":"var(--signal)");
+    tr.innerHTML="<td><b style='color:"+r.color+"'>"+r.icon+"</b> "+r.label+
+      (r.edited?"*":"")+"<div class='vbar'><i style='width:"+
+      Math.min(100,r.vram/8*100)+"%;background:"+scol+"'></i></div></td>"+
+      "<td class='num' style='color:"+scol+"'>"+sym+" "+r.vram.toFixed(1)+"</td>"+
+      "<td class='num'>"+r.ram.toFixed(1)+"</td>"+
+      "<td class='num'>"+Math.round(r.ctx/1024)+"k</td>"+
+      "<td>"+String(r.tok).slice(0,12)+"</td>";
+    const go=()=>{state.cur=r.tab;
+      if(r.key.startsWith("audio:"))state.alvl=r.key.split(":")[1];
+      state.view="profile";render();window.scrollTo(0,0);};
+    tr.onclick=go;
+    tr.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();go();}};
+    tb.appendChild(tr);
+  });
+  tab.appendChild(tb);t.appendChild(tab);
+  const h=document.createElement("p");h.className="hint";
+  h.textContent="Legende: \u2713 unter 7,4 GB passt, ! 7,4\u20137,8 grenzwertig, "+
+    "\u2715 ab 7,9 kritisch (8-GB-Karten).";
+  t.appendChild(h);m.appendChild(t);
+}
+function searchView(m){
+  const c=document.createElement("div");c.className="card";
+  c.innerHTML="<h2>Hugging-Face-Suche</h2>";
+  const row=document.createElement("div");row.className="lvlrow";
+  const inp=document.createElement("input");
+  inp.value=state.search||act().search||"";
+  inp.setAttribute("aria-label","Suchbegriff");
+  inp.style.cssText="flex:1;font:inherit;padding:.6rem;border-radius:.45rem;"+
+    "border:1px solid var(--line);background:var(--panel2);color:var(--text);min-height:44px";
+  const goB=document.createElement("button");goB.className="amber";goB.textContent="Suchen";
+  row.appendChild(inp);row.appendChild(goB);c.appendChild(row);
+  const out=document.createElement("div");out.id="searchres";
+  out.textContent="Offline bereit \u2013 Suche braucht Netz.";c.appendChild(out);
+  const doSearch=()=>{
+    const q=inp.value.trim();if(!q)return;
+    out.textContent="Suche nach \u201e"+q+"\u201c \u2026";
+    fetch("https://huggingface.co/api/models?search="+encodeURIComponent(q)+
+      "&filter=gguf&sort=downloads&direction=-1&limit=8")
+      .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+      .then(j=>{if(!j.length){out.textContent="Keine Treffer.";return;}
+        out.innerHTML="";
+        j.forEach(x=>{const d=document.createElement("div");
+          d.style.padding=".4rem 0";d.style.borderBottom="1px solid var(--line)";
+          d.textContent=(x.modelId||"?")+"  \u00b7  "+(x.downloads||0)+" DL";
+          d.style.cursor="pointer";d.tabIndex=0;
+          const cp=()=>copyText(x.modelId||"");d.onclick=cp;
+          d.onkeydown=ev=>{if(ev.key==="Enter"){ev.preventDefault();cp();}};
+          out.appendChild(d);});
+        const t2=document.createElement("div");t2.className="hint";
+        t2.textContent="Tippen kopiert die Modell-ID.";out.appendChild(t2);})
+      .catch(e=>{out.textContent="Fehler: "+e.message+
+        " (offline oder blockiert).";});};
+  goB.onclick=doSearch;
+  inp.onkeydown=ev=>{if(ev.key==="Enter")doSearch();};
+  m.appendChild(c);
+}
+function render(){
+  document.documentElement.style.setProperty("--fs",state.zoom+"%");
+  $("#zlab").textContent=state.zoom+"%";
+  localStorage.setItem("lmo-zoom",state.zoom);
+  renderPills();
+  const m=$("#main");m.innerHTML="";
+  if(state.view==="dashboard")dashView(m);
+  else if(state.view==="search")searchView(m);
+  else profileView(m);
+}
+function copyAll(){
+  const s=act(),ed=edited()?" (angepasst*)":"";
+  let t="=== "+s.name+ed+" ===\nModell: "+s.model+"\nSuche: "+s.search+"\n\n";
+  t+="--- Kern ---\nContext Length: "+s.ctx+"\nGPU Offload: "+s.layers+" Layer\n"+
+    "KV Quant: "+s.kv+"\nFlash Attention: "+(s.flash?"An":"Aus")+"\n\n--- Performance ---\n"+
+    "Physical Batch: "+s.phys_batch+"\nEval Batch: "+s.batch+"\nCPU Threads: "+
+    s.threads+"\nMax Concurrent: "+s.max_conc+"\n\n--- Speicher ---\n"+
+    "Unified KV: "+(s.unified_kv?"An":"Aus")+"\nContext Checkpoints: "+s.ctx_cp+
+    "\ntry mmap(): "+(s.mmap?"An":"Aus")+"\nKeep in Mem: "+(s.keep_mem?"An":"Aus")+
+    "\nOffload KV GPU: "+(s.offload_kv?"An":"Aus")+"\n\n--- Speculative ---\n"+
+    "Mode: "+s.spec+"\nMax Draft: "+s.max_draft+"\nMin Draft: "+s.min_draft+
+    "\nDraft Prob: "+s.draft_p+"\n\n--- Advanced ---\n"+
+    "RoPE Base: "+(s.rope_base==0?"Auto":s.rope_base)+
+    "\nRoPE Scale: "+(s.rope_scale==0?"Auto":s.rope_scale)+
+    "\nK Quant: "+s.k_quant+"\nV Quant: "+s.v_quant+"\nSeed: -1\n";
+  copyText(t);
+}
+function downloadJSON(){
+  const s=act();
+  const pre={name:s.name,load_params:{ctx_len:s.ctx,n_gpu_layers:s.layers,
+    flash_attention:!!s.flash,use_mmap:!!s.mmap,eval_batch_size:s.batch,
+    physical_batch_size:s.phys_batch,cpu_threads:s.threads,
+    max_concurrent_predictions:s.max_conc,unified_kv_cache:!!s.unified_kv,
+    context_checkpoints:s.ctx_cp,keep_model_in_memory:!!s.keep_mem,
+    offload_kv_cache_to_gpu:!!s.offload_kv,rope_freq_base:s.rope_base,
+    rope_freq_scale:s.rope_scale,cache_type_k:String(s.k_quant).toLowerCase(),
+    cache_type_v:String(s.v_quant).toLowerCase(),speculative_decoding:s.spec,
+    max_draft_tokens:s.max_draft,min_draft_tokens:s.min_draft,
+    draft_probability:s.draft_p},
+    inference_params:{max_tokens:-1,temperature:.7,top_p:.95,top_k:40,
+    repeat_penalty:1.1,seed:-1}};
+  const blob=new Blob([JSON.stringify(pre,null,2)],
+    {type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=String(s.name).replace(/\s+/g,"_").toLowerCase()+".json";
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+  toast("Preset heruntergeladen.");
+}
+function selftest(){
+  const box=$("#selftest"),out=[];
+  const ok=(n,c)=>out.push((c?"PASS":"FAIL")+" "+n);
+  ok("tasks geladen",!!state.tasks);
+  ok("8 Profile",state.tasks&&Object.keys(state.tasks).length===8);
+  ok("Audio-Level",!!(state.tasks&&state.tasks.audio.levels.min&&
+    state.tasks.audio.levels.normal&&state.tasks.audio.levels.max));
+  ok("VRAM-Schaetzung",typeof estVram(baseAct(),act())==="number");
+  ok("Pills gerendert",document.querySelectorAll("#pills button").length>=8);
+  const fails=out.filter(x=>x.startsWith("FAIL")).length;
+  box.style.display="block";
+  box.textContent="SELFTEST "+(out.length-fails)+"/"+out.length+" \u00b7 "+out.join(" \u00b7 ");
+  document.title="SELFTEST "+(out.length-fails)+"/"+out.length;
+}
+fetch("tasks.json").then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);
+  return r.json();}).then(j=>{
+  state.tasks=j.profiles;render();
+  if(new URLSearchParams(location.search).has("selftest"))selftest();
+}).catch(e=>{$("#main").innerHTML="<div class='card'><h2>Fehler</h2>"+
+  "<p class='sub'>tasks.json fehlt: "+e.message+"</p></div>";});
+$("#zin").onclick=()=>{state.zoom=Math.min(160,state.zoom+10);render();};
+$("#zout").onclick=()=>{state.zoom=Math.max(65,state.zoom-10);render();};
+$("#zlab").onclick=()=>{state.zoom=100;render();};
+$("#vdash").onclick=()=>{state.view=state.view==="dashboard"?"profile":"dashboard";
+  render();window.scrollTo(0,0);};
+$("#vsearch").onclick=()=>{state.view="search";render();window.scrollTo(0,0);};
+$("#bcopy").onclick=copyAll;
+$("#bjson").onclick=downloadJSON;
+$("#bsearch").onclick=()=>{state.view="search";render();window.scrollTo(0,0);};
+$("#breset").onclick=()=>{const k=ovKey();
+  if(state.ov[k]){delete state.ov[k];saveOv();render();toast("Profil zurueckgesetzt.");}
+  else toast("Bereits Standard.");};
+if("serviceWorker" in navigator&&location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>
+    navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
