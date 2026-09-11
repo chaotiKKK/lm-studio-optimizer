@@ -22,6 +22,14 @@ flet build aab             # Play-Store-Bundle
 Signieren für Release: `flet build apk --android-signing-key-store ...`
 (siehe `flet build apk --help`).
 
+## CI (GitHub Actions)
+
+Der Workflow `Android APK + AAB` baut bei jedem Push unter `android/**`
+automatisch APK (Sideload) und AAB (Play Store) und legt beide unter
+Actions → Artifacts ab (`lm-optimizer-apk`, `lm-optimizer-aab`).
+Vor dem Play-Upload das AAB mit dem eigenen Upload-Key signieren
+(Play App Signing in der Play Console einrichten).
+
 ## Einschraenkungen mobil
 
 - `psutil`/`GPUtil` gibt es auf Android nicht → Live-Systemwerte zeigen

@@ -1,6 +1,9 @@
-# Baut die Android-APK der Flet-App (android/flet) und liefert sie als Artifact.
+# Baut Android-APK (Sideload) und -AAB (Play Store) der Flet-App
+# (android/flet) und liefert beide als Artifacts.
 # Start: automatisch bei Aenderungen unter android/** oder manuell (Run workflow).
-name: Android APK
+# Hinweis: Das AAB muss vor dem Play-Upload mit einem Upload-Key signiert
+# werden (Play App Signing) - siehe android/flet/README.md.
+name: Android APK + AAB
 
 on:
   push:
@@ -36,4 +39,29 @@ jobs:
       with:
         name: lm-optimizer-apk
         path: android/flet/build/apk/*.apk
+        if-no-files-found: error
+  aab:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android/flet
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+    - name: Install Flet
+      run: |
+        python -m pip install --upgrade pip
+        pip install flet
+    - name: Build AAB
+      env:
+        PYTHONUTF8: "1"
+      run: flet build aab --yes --verbose --no-rich-output
+    - name: Upload AAB
+      uses: actions/upload-artifact@v4
+      with:
+        name: lm-optimizer-aab
+        path: android/flet/build/aab/*.aab
         if-no-files-found: error
