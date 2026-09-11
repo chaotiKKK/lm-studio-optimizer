@@ -1,0 +1,38 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# PyInstaller
+build/
+dist/
+*.spec
+extract.ps1
+build-log.txt
+
+# Virtualenv
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Trash
+_trash/
+
+# Random
+GO.bat
+ups.bat
+deepseek_bat_*.bat
+text.txt
+markdown.md
+lm_studio_optimizer_v2.py
